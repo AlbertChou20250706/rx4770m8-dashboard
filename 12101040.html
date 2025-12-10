@@ -1,0 +1,1163 @@
+<!--
+RX4770M8-T50-2 Test Status Dashboard
+Version: v0.4.0
+Last updated: 2025-12-09 13:30
+Designer: Albert Chou
+See README.md for full history and modification guide.
+-->
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>RX4770M8-T50-2 Test Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --primary:#c62828;
+    --primary-soft:#ffe5e5;
+
+    /* base palette (light) */
+    --bg:#f0f4f9;
+    --bg-alt:#ffffff;
+    --muted:#e2e8f0;
+    --border:#cbd5e1;
+    --pass:#2e7d32;
+    --fail:#d32f2f;
+    --block:#f57c00;
+    --warn-bg:#ffe5e5;
+    --holiday-bg:#fff7d6;
+    --weekend-bg:#edf2ff;
+    --text-main:#1e293b;
+    --text-muted:#64748b;
+  }
+
+  body.theme-light{
+    background:radial-gradient(circle at top left,#ffffff 0,#f3f6fb 45%,#e5ecf7 100%);
+    color:var(--text-main);
+  }
+  body.theme-dark{
+    background:radial-gradient(circle at top left,#020617 0,#020617 40%,#111827 100%);
+    color:#e5e7eb;
+  }
+  body.theme-green{
+    background:radial-gradient(circle at top left,#ecfdf5 0,#d1fae5 40%,#a7f3d0 100%);
+    color:#064e3b;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    padding:16px;
+    font-family:Arial,system-ui,-apple-system,"Segoe UI",Roboto;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:4px;
+  }
+  h1{
+    color:var(--primary);
+    margin:0 0 4px 0;
+    letter-spacing:0.03em;
+  }
+  .meta{font-size:14px;color:var(--text-muted)}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button,input,select,textarea{
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:var(--bg-alt);
+    font-size:13px;
+    color:var(--text-main);
+  }
+  button.primary{
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+  }
+  button.primary:hover{background:#b71c1c}
+  .card{
+    background:linear-gradient(135deg,#ffffff 0,#f8fafc 40%,#f1f5f9 100%);
+    border-radius:10px;
+    padding:12px 14px;
+    border:1px solid var(--border);
+    margin-top:12px;
+    box-shadow:0 4px 10px rgba(15,23,42,0.06);
+  }
+  body.theme-dark .card{
+    background:linear-gradient(135deg,#020617 0,#020617 40%,#020617 100%);
+    box-shadow:0 6px 18px rgba(15,23,42,0.9);
+    border-color:#374151;
+  }
+  body.theme-green .card{
+    background:linear-gradient(135deg,#ecfdf5 0,#d1fae5 40%,#bbf7d0 100%);
+    border-color:#6ee7b7;
+  }
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{font-weight:700;font-size:13px;display:block;margin-bottom:4px;color:var(--text-main)}
+  .small{font-size:12px;color:var(--text-muted)}
+  table{border-collapse:collapse;width:100%;background:var(--bg-alt)}
+  th,td{border:1px solid var(--border);padding:4px 6px;text-align:center;font-size:12px}
+  th{
+    background:linear-gradient(180deg,#edf2ff 0,#dde3f3 100%);
+    font-weight:700;
+    color:var(--text-main);
+  }
+  body.theme-dark th{
+    background:linear-gradient(180deg,#111827 0,#020617 100%);
+    color:#e5e7eb;
+    border-color:#374151;
+  }
+  body.theme-green th{
+    background:linear-gradient(180deg,#ccfbf1 0,#a7f3d0 100%);
+  }
+
+  .owner-col{width:180px;text-align:left;padding-left:8px}
+  #progressArea{
+    height:420px;
+    overflow:auto;
+    border:1px solid var(--border);
+    background:linear-gradient(180deg,#f9fbff 0,#eef2ff 50%,#f9fbff 100%);
+    border-radius:10px;
+    padding:8px;
+    margin-top:12px;
+    box-shadow:inset 0 0 0 1px rgba(148,163,184,0.25);
+  }
+  body.theme-dark #progressArea{
+    background:linear-gradient(180deg,#020617 0,#020617 100%);
+    box-shadow:inset 0 0 0 1px rgba(30,64,175,0.8);
+    border-color:#374151;
+  }
+  body.theme-green #progressArea{
+    background:linear-gradient(180deg,#ecfdf5 0,#d1fae5 40%,#ecfdf5 100%);
+    box-shadow:inset 0 0 0 1px rgba(16,185,129,0.4);
+    border-color:#6ee7b7;
+  }
+
+  #progressTable{min-width:1100px;border-collapse:collapse}
+  .day-cell{min-width:64px;min-height:40px;position:relative;padding:4px;vertical-align:middle}
+  .day-num{position:relative;z-index:2;font-weight:700;font-size:12px}
+  .day-fill{position:absolute;left:4px;right:4px;top:4px;height:22px;border-radius:6px;z-index:1;opacity:0.22}
+  .holiday-label{font-size:11px;color:#b45309;margin-top:2px}
+  .progress-bar-mini{height:10px;background:#e2e8f0;border-radius:8px;overflow:hidden;width:100%;margin-top:2px}
+  .progress-mini-fill{height:100%;background:var(--pass);width:0%;text-align:center;color:#fff;font-size:10px;line-height:10px}
+  .form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .form-row > *{flex:0 0 auto}
+  .badge{
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:999px;
+    background:var(--primary-soft);
+    color:var(--primary);
+    font-size:12px;
+    border:1px solid rgba(220,38,38,0.25);
+  }
+  .cell-holiday{background:var(--holiday-bg)}
+  .cell-weekend{background:var(--weekend-bg)}
+  .owner-header{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .owner-delete{border:none;background:transparent;color:#b91c1c;cursor:pointer;font-weight:bold;font-size:13px}
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:#e2e8f0;
+    font-size:11px;
+    margin-right:4px;
+    color:var(--text-main);
+  }
+  .pill button{border:none;background:transparent;color:#b91c1c;cursor:pointer;font-weight:bold;padding:0 4px}
+  .warn-text{color:#b91c1c;font-size:11px;margin-left:4px}
+</style>
+</head>
+<body class="theme-light">
+<header>
+  <div>
+    <h1 data-i18n="title">RX4770M8-T50-2 Test Status</h1>
+    <div class="meta">
+      <span><strong data-i18n="leader_label">Leader:</strong> <span id="leaderDisplay">Sora/Albert</span></span>
+      &nbsp;|&nbsp;
+      <span><strong data-i18n="report_year_label">Report year:</strong> <input id="reportYearInput" style="width:72px" value="2025" /></span>
+    </div>
+  </div>
+  <div class="toolbar">
+    <span class="badge" id="timestamp">Last updated: —</span>
+    <button id="exportCsvBtn" data-i18n="export_csv">Export CSV</button>
+    <button id="exportXlsxBtn" class="primary" data-i18n="export_xlsx">Export Excel (.xlsx)</button>
+    <button id="resetAllBtn" style="margin-left:8px;background:#4b5563;color:#fff;" data-i18n="btn_reset_all">Reset all (new project)</button>
+
+    <!-- 新增：Export / Import JSON 按鈕 -->
+    <button id="exportStateBtn" style="margin-left:8px;">Export project state (JSON)</button>
+    <button id="importStateBtn">Import project state</button>
+    <input type="file" id="importStateFile" accept=".json,application/json" style="display:none;">
+
+    <div style="margin-left:8px">
+      <label for="langSelect" class="small" data-i18n="language_label">Language:</label>
+      <select id="langSelect" aria-label="Language selector">
+        <option value="zh-Hant">中文（繁體）</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+      </select>
+    </div>
+
+    <div style="margin-left:8px">
+      <label for="themeSelect" class="small">Theme:</label>
+      <select id="themeSelect" aria-label="Theme selector">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="green">Green</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<!-- top controls -->
+<div class="card" aria-label="Controls">
+  <div class="grid2">
+    <div>
+      <label data-i18n="label_leader">Leader</label>
+      <input id="leaderInput" placeholder="例如: Sora/Albert" />
+      <div style="margin-top:6px;display:flex;gap:8px">
+        <button id="setLeaderBtn" data-i18n="btn_set_leader">Set leader</button>
+        <button id="loadDefaultsBtn" data-i18n="btn_load_defaults">Load defaults</button>
+      </div>
+      <p class="small" data-i18n="note_leader">Leader is stored in localStorage and shown in header.</p>
+    </div>
+
+    <div>
+      <label data-i18n="label_engineer_list">Engineer list (comma-separated)</label>
+      <input id="engineerManager" placeholder="Albert,Alice,Bob" />
+      <div style="margin-top:6px;display:flex;gap:8px">
+        <button id="applyEngineersBtn" data-i18n="btn_apply_engineers">Apply</button>
+        <button id="addEngineerBtn" data-i18n="btn_add_engineer">Add single engineer</button>
+      </div>
+      <p class="small" data-i18n="note_engineer_list">You can bulk-apply or add single. Use chips below or Owner column to delete.</p>
+      <div id="engineerChipList" style="margin-top:4px"></div>
+    </div>
+  </div>
+
+  <hr style="margin:12px 0">
+
+  <div class="form-row">
+    <div>
+      <label data-i18n="label_start_date">Start date</label>
+      <input type="date" id="startDate" />
+    </div>
+
+    <div>
+      <label data-i18n="label_weeks">Project weeks</label>
+      <input type="number" id="projectWeeks" min="1" value="6" style="width:80px" />
+    </div>
+
+    <div>
+      <label data-i18n="label_workdays">Total workdays (calculated)</label>
+      <input type="number" id="workdaysCount" readonly style="width:96px" />
+    </div>
+
+    <div>
+      <label data-i18n="label_daily_target">Default daily target</label>
+      <input type="number" id="defaultDailyTarget" min="1" value="1" style="width:96px" />
+    </div>
+
+    <div>
+      <label>&nbsp;</label>
+      <button id="refreshGridBtn" class="primary" data-i18n="btn_refresh">Refresh progress grid</button>
+    </div>
+  </div>
+
+  <div style="margin-top:10px;">
+    <label data-i18n="label_holidays">Holidays / special dates (add manual)</label>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="date" id="holidayDate" />
+      <input id="holidayName" placeholder="例如：行憲紀念日" style="width:220px" />
+      <button id="addHolidayBtn" data-i18n="btn_add_holiday">Add holiday</button>
+      <button id="clearHolidaysBtn" data-i18n="btn_clear_holidays">Clear all</button>
+    </div>
+    <div id="holidayList" class="small" style="margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- Detail input -->
+<div class="card">
+  <h3 style="margin:4px 0 8px;" data-i18n="detail_input_title">Test Item detail input (simple)</h3>
+  <div class="form-row">
+    <div>
+      <label data-i18n="detail_tester">Tester</label>
+      <select id="detailTester"></select>
+    </div>
+    <div>
+      <label data-i18n="detail_status">Test Item - Detail status</label>
+      <select id="detailStatus"></select>
+    </div>
+    <div>
+      <label data-i18n="detail_sheet">Sheet</label>
+      <select id="detailSheet"></select>
+    </div>
+    <div>
+      <label data-i18n="detail_line">Line</label>
+      <input type="number" id="detailLine" min="1" value="1" style="width:70px" />
+    </div>
+    <div>
+      <label data-i18n="detail_date">Date</label>
+      <input type="date" id="detailDate" />
+    </div>
+    <div>
+      <label data-i18n="detail_result">PASS / FAIL / BLOCK</label>
+      <select id="detailResult">
+        <option value="pass">PASS</option>
+        <option value="fail">FAIL</option>
+        <option value="block">BLOCK</option>
+      </select>
+    </div>
+    <div>
+      <label data-i18n="detail_count">Count</label>
+      <input type="number" id="detailCount" min="1" value="1" style="width:70px" />
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="addDetailBtn" class="primary" data-i18n="btn_add_detail">Add</button>
+    </div>
+  </div>
+  <p class="small" data-i18n="detail_note">This row equals Excel columns Tester / Test Items - Detail status / Sheet / Line. After adding, daily PASS/FAIL/BLOCK and summary will update automatically.</p>
+
+  <!-- Total progress (all engineers) -->
+  <div style="margin-top:10px;">
+    <strong data-i18n="label_total_progress">Total progress (all engineers)</strong>
+    <div class="small" id="totalProgressBarWrap" style="margin-top:4px;">
+      <div style="display:flex;align-items:center;gap:8px;max-width:600px;">
+        <span style="width:60px;text-align:right" id="totalPctLabel">0%</span>
+        <div style="flex:1;background:#e2e8f0;border-radius:999px;overflow:hidden;display:flex;height:12px;">
+          <div id="totalPassFill" style="background:var(--pass);width:0%;"></div>
+          <div id="totalFailFill" style="background:var(--fail);width:0%;"></div>
+          <div id="totalBlockFill" style="background:var(--block);width:0%;"></div>
+        </div>
+        <span id="totalPctWarn" class="warn-text"></span>
+      </div>
+      <div class="small" id="totalBreakdown" style="margin-top:2px;"></div>
+      <div class="small" id="totalCapInfo" style="margin-top:2px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- progress grid -->
+<div id="progressArea">
+  <table id="progressTable"></table>
+</div>
+
+<!-- summary + filters -->
+<div class="card" style="margin-top:12px">
+  <h3 data-i18n="summary_title">Summary table (legacy)</h3>
+
+  <!-- Filters for summary table -->
+  <div class="form-row" style="margin-bottom:8px;">
+    <div>
+      <label class="small">Tester</label>
+      <input id="filterTester" style="width:120px;" />
+    </div>
+    <div>
+      <label class="small">Test Item Detail</label>
+      <input id="filterDetail" style="width:160px;" />
+    </div>
+    <div>
+      <label class="small">Sheet</label>
+      <input id="filterSheet" style="width:140px;" />
+    </div>
+    <div>
+      <label class="small">Line</label>
+      <input id="filterLine" style="width:80px;" />
+    </div>
+    <div>
+      <label class="small">Date</label>
+      <input type="date" id="filterDate" />
+    </div>
+    <div>
+      <label class="small">PASS ≥</label>
+      <input type="number" id="filterPass" style="width:70px;" min="0" />
+    </div>
+    <div>
+      <label class="small">FAIL ≥</label>
+      <input type="number" id="filterFail" style="width:70px;" min="0" />
+    </div>
+    <div>
+      <label class="small">BLOCK ≥</label>
+      <input type="number" id="filterBlock" style="width:70px;" min="0" />
+    </div>
+    <div style="align-self:flex-end;">
+      <button id="applyFilterBtn">Apply filter</button>
+      <button id="clearFilterBtn">Clear</button>
+    </div>
+  </div>
+
+  <table id="testTable">
+    <thead>
+      <tr>
+        <th>No.</th>
+        <th data-i18n="th_tester">Tester</th>
+        <th data-i18n="th_detail">Test Item Detail</th>
+        <th data-i18n="th_sheet">Sheet</th>
+        <th data-i18n="th_line">Line</th>
+        <th data-i18n="th_date">Date</th>
+        <th>PASS</th><th>FAIL</th><th>BLOCK</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+/* ===== i18n data ===== */
+const I18N = {
+  "zh-Hant": {
+    title:"RX4770M8-T50-2 測試狀態",
+    leader_label:"負責人：",
+    report_year_label:"報告年度：",
+    export_csv:"匯出 CSV",
+    export_xlsx:"匯出 Excel (.xlsx)",
+    language_label:"語言：",
+    label_leader:"負責人",
+    btn_set_leader:"設定負責人",
+    btn_load_defaults:"回復預設",
+    note_leader:"Leader 會儲存在 localStorage 並顯示在頁首。",
+    label_engineer_list:"工程師清單（以逗號分隔）",
+    btn_apply_engineers:"套用",
+    btn_add_engineer:"新增工程師",
+    note_engineer_list:"可批次套用或單筆新增。下方標籤或 Owner 欄可刪除。",
+    label_start_date:"開始日期",
+    label_weeks:"專案週數",
+    label_workdays:"工作日總數",
+    label_daily_target:"日目標 (預設)",
+    btn_refresh:"重新整理進度",
+    label_holidays:"假日 / 節日（手動）",
+    btn_add_holiday:"新增假日",
+    btn_clear_holidays:"清除全部",
+    detail_input_title:"測試項目細項輸入（簡化版）",
+    detail_tester:"測試者 (Tester)",
+    detail_status:"Test Item - Detail status",
+    detail_sheet:"Sheet",
+    detail_line:"Line",
+    detail_date:"日期",
+    detail_result:"PASS / FAIL / BLOCK",
+    detail_count:"次數",
+    btn_add_detail:"新增",
+    detail_note:"這一列的功能 = Excel 裡 Tester / Test Items - Detail status / Sheet / Line。新增後會自動更新每日 PASS/FAIL/BLOCK 與下方彙總。",
+    summary_title:"彙總表 (legacy)",
+    th_tester:"Tester",
+    th_detail:"Test Item Detail",
+    th_sheet:"Sheet",
+    th_line:"Line",
+    th_date:"日期",
+    last_updated_prefix:"最後更新：",
+    btn_reset_all:"重置全部資料",
+    reset_confirm:"確定要重置所有資料？此動作會清除工程師、Leader、假日與所有測試記錄，方便下一個專案重新開始。",
+    label_total_progress:"Total progress (all engineers)",
+    warn_over_100:"總進度超過 100%！請調整目標或測試數量。"
+  },
+  "en": {
+    title:"RX4770M8-T50-2 Test Status",
+    leader_label:"Leader:",
+    report_year_label:"Report year:",
+    export_csv:"Export CSV",
+    export_xlsx:"Export Excel (.xlsx)",
+    language_label:"Language:",
+    label_leader:"Leader",
+    btn_set_leader:"Set leader",
+    btn_load_defaults:"Load defaults",
+    note_leader:"Leader is stored in localStorage and shown in the header.",
+    label_engineer_list:"Engineer list (comma-separated)",
+    btn_apply_engineers:"Apply",
+    btn_add_engineer:"Add engineer",
+    note_engineer_list:"You can bulk-apply or add single. Use chips below or Owner column to delete.",
+    label_start_date:"Start date",
+    label_weeks:"Project weeks",
+    label_workdays:"Total workdays",
+    label_daily_target:"Default daily target",
+    btn_refresh:"Refresh progress grid",
+    label_holidays:"Holidays / special dates (manual)",
+    btn_add_holiday:"Add holiday",
+    btn_clear_holidays:"Clear all",
+    detail_input_title:"Test Item detail input (simple)",
+    detail_tester:"Tester",
+    detail_status:"Test Item - Detail status",
+    detail_sheet:"Sheet",
+    detail_line:"Line",
+    detail_date:"Date",
+    detail_result:"PASS / FAIL / BLOCK",
+    detail_count:"Count",
+    btn_add_detail:"Add",
+    detail_note:"This row equals Excel columns Tester / Test Items - Detail status / Sheet / Line. After adding, daily PASS/FAIL/BLOCK and summary will update automatically.",
+    summary_title:"Summary table (legacy)",
+    th_tester:"Tester",
+    th_detail:"Test Item Detail",
+    th_sheet:"Sheet",
+    th_line:"Line",
+    th_date:"Date",
+    last_updated_prefix:"Last updated: ",
+    btn_reset_all:"Reset all (new project)",
+    reset_confirm:"Reset ALL data? This will clear engineers, leader, holidays and all test records so you can start a new project.",
+    label_total_progress:"Total progress (all engineers)",
+    warn_over_100:"Total progress is over 100%! Please adjust target or test counts."
+  },
+  "ja": {
+    title:"RX4770M8-T50-2 テストステータス",
+    leader_label:"リーダー：",
+    report_year_label:"レポート年：",
+    export_csv:"CSV をエクスポート",
+    export_xlsx:"Excel をエクスポート (.xlsx)",
+    language_label:"言語：",
+    label_leader:"リーダー",
+    btn_set_leader:"リーダーを設定",
+    btn_load_defaults:"デフォルトに戻す",
+    note_leader:"リーダーは LocalStorage に保存され、ヘッダーに表示されます。",
+    label_engineer_list:"エンジニアリスト（カンマ区切り）",
+    btn_apply_engineers:"適用",
+    btn_add_engineer:"エンジニア追加",
+    note_engineer_list:"一括適用または単体追加が可能。下のチップや Owner 列から削除できます。",
+    label_start_date:"開始日",
+    label_weeks:"プロジェクト週数",
+    label_workdays:"稼働日数",
+    label_daily_target:"デフォルト日別目標",
+    btn_refresh:"進捗を更新",
+    label_holidays:"祝日 / 特別日（手動）",
+    btn_add_holiday:"祝日を追加",
+    btn_clear_holidays:"すべてクリア",
+    detail_input_title:"テスト項目詳細入力（シンプル）",
+    detail_tester:"テスター",
+    detail_status:"Test Item - Detail status",
+    detail_sheet:"Sheet",
+    detail_line:"Line",
+    detail_date:"日付",
+    detail_result:"PASS / FAIL / BLOCK",
+    detail_count:"回数",
+    btn_add_detail:"追加",
+    detail_note:"この行は Excel の Tester / Test Items - Detail status / Sheet / Line と同じです。追加すると日別 PASS/FAIL/BLOCK とサマリーが自動更新されます。",
+    summary_title:"サマリーテーブル (legacy)",
+    th_tester:"Tester",
+    th_detail:"Test Item Detail",
+    th_sheet:"Sheet",
+    th_line:"Line",
+    th_date:"日付",
+    last_updated_prefix:"最終更新：",
+    btn_reset_all:"すべてリセット (新プロジェクト)",
+    reset_confirm:"すべてのデータをリセットしますか？エンジニア、リーダー、祝日、およびすべてのテスト記録が削除され、新しいプロジェクトを開始できます。",
+    label_total_progress:"総合進捗 (全エンジニア)",
+    warn_over_100:"総合進捗が 100% を超えています。目標またはテスト数を調整してください。"
+  }
+};
+
+function applyLang(lang){
+  const d = I18N[lang] || I18N["zh-Hant"];
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.getAttribute("data-i18n");
+    if(d[key] !== undefined) el.textContent = d[key];
+  });
+  document.getElementById("leaderInput").placeholder =
+    (lang==="zh-Hant") ? "例如: Sora/Albert" :
+    (lang==="ja") ? "例: Sora/Albert" : "e.g., Sora/Albert";
+  localStorage.setItem('siteLang', lang);
+}
+
+/* ===== theme switcher ===== */
+function applyTheme(theme){
+  const body = document.body;
+  body.classList.remove('theme-light','theme-dark','theme-green');
+  if(theme === 'dark') body.classList.add('theme-dark');
+  else if(theme === 'green') body.classList.add('theme-green');
+  else body.classList.add('theme-light');
+  localStorage.setItem('siteTheme', theme);
+}
+
+/* ===== storage & state ===== */
+function safeLoad(key, def){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):def; }catch(e){return def;} }
+function safeSave(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){} }
+
+/* ----- 新增：Project state build / apply，用於 JSON Export/Import ----- */
+function buildProjectState(){
+  return {
+    version: 1,
+    meta: {
+      generatedAt: new Date().toISOString()
+    },
+    leader,
+    engineers,
+    holidays,
+    detailRows,
+    ui: {
+      siteLang: localStorage.getItem('siteLang') || 'zh-Hant',
+      siteTheme: localStorage.getItem('siteTheme') || 'light',
+      progressStart: localStorage.getItem('progressStart') || document.getElementById('startDate').value,
+      projectWeeks: localStorage.getItem('projectWeeks') || document.getElementById('projectWeeks').value,
+      defaultDailyTarget: localStorage.getItem('defaultDailyTarget') || document.getElementById('defaultDailyTarget').value,
+      reportYear: document.getElementById('reportYearInput').value
+    }
+  };
+}
+
+function applyProjectState(state){
+  if(!state || typeof state !== 'object') return;
+
+  // 基本資料
+  leader = state.leader || leader;
+  engineers = Array.isArray(state.engineers) && state.engineers.length ? state.engineers : engineers;
+  holidays = state.holidays || {};
+  detailRows = Array.isArray(state.detailRows) ? state.detailRows : [];
+
+  // 寫回 localStorage
+  localStorage.setItem('leader', leader);
+  safeSave('engineers', engineers);
+  safeSave('holidays', holidays);
+  safeSave('detailRows', detailRows);
+
+  const ui = state.ui || {};
+
+  if(ui.siteLang)    localStorage.setItem('siteLang', ui.siteLang);
+  if(ui.siteTheme)   localStorage.setItem('siteTheme', ui.siteTheme);
+  if(ui.progressStart)      localStorage.setItem('progressStart', ui.progressStart);
+  if(ui.projectWeeks)       localStorage.setItem('projectWeeks', ui.projectWeeks);
+  if(ui.defaultDailyTarget) localStorage.setItem('defaultDailyTarget', ui.defaultDailyTarget);
+
+  // 更新輸入欄位
+  document.getElementById('leaderInput').value = leader;
+  document.getElementById('leaderDisplay').textContent = leader;
+  document.getElementById('engineerManager').value = engineers.join(',');
+
+  if(ui.progressStart) document.getElementById('startDate').value = ui.progressStart;
+  if(ui.projectWeeks)  document.getElementById('projectWeeks').value = ui.projectWeeks;
+  if(ui.defaultDailyTarget) document.getElementById('defaultDailyTarget').value = ui.defaultDailyTarget;
+  if(ui.reportYear) document.getElementById('reportYearInput').value = ui.reportYear;
+
+  // 重畫畫面
+  renderEngineerChips();
+  renderHolidayList();
+  fillDetailDropdowns();
+  renderLegacyTable();
+  updateProgressGrid();
+
+  // 語言與主題最後套用，避免閃爍
+  if(ui.siteLang) {
+    document.getElementById('langSelect').value = ui.siteLang;
+    applyLang(ui.siteLang);
+  }
+  if(ui.siteTheme) {
+    document.getElementById('themeSelect').value = ui.siteTheme;
+    applyTheme(ui.siteTheme);
+  }
+}
+
+/* ----- 新增：State Export / Import 具體實作 ----- */
+function exportStateJSON(){
+  const state = buildProjectState();
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,19).replace(/[:-]/g,'').replace('T','_');
+  a.href = URL.createObjectURL(blob);
+  a.download = `RX4770M8-T50-2_state_${ts}.json`;
+  a.click();
+}
+
+function importStateJSON(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const obj = JSON.parse(e.target.result);
+      applyProjectState(obj);
+      alert('Project state imported successfully.');
+    }catch(err){
+      console.error(err);
+      alert('Import failed: invalid JSON file.');
+    }
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+/* Test Item - Detail status options */
+const DETAIL_STATUS_OPTIONS = [
+  "TSR_HW_Configurator_Linux_Oracle",
+  "TSR_HW_Configurator_Linux_SuSE",
+  "TSR_OS_Configurator_Linux_Oracle",
+  "TSR_OS_Configurator_Linux_SuSE",
+  "TSR_OS_Maintenance_R1.2.0_SIT",
+  "TSR_SW_Configurator_Linux_SuSE"
+];
+
+/* Sheet options */
+const SHEET_OPTIONS = [
+  "TR SAS RAID Adapter",
+  "TR SAS Adapter",
+  "TR other Adapter",
+  "TR LAN Adapter",
+  "TR_OS_Regression",
+  "TR FC Adapter",
+  "TR Linux OL EL 10",
+  "TR ASP",
+  "TR Systemboard",
+  "TR Linux SuSE SLES 16"
+];
+
+const DEFAULT_ENGINEERS = ["Albert","Alice","Bob"];
+let engineers = safeLoad('engineers', DEFAULT_ENGINEERS.slice());
+let holidays  = safeLoad('holidays', {});
+let leader    = localStorage.getItem('leader') || "Sora/Albert";
+/* detailRows: {owner,detail,sheet,line,date,pass,fail,block} */
+let detailRows = safeLoad('detailRows', []);
+
+const $ = id => document.getElementById(id);
+
+/* ===== utility ===== */
+function isoDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseISO(s){ return new Date(s+'T00:00:00'); }
+function addDays(d,n){ const nd=new Date(d); nd.setDate(nd.getDate()+n); return nd; }
+function isWeekendISO(dtIso){ const dow=new Date(dtIso+'T00:00:00').getDay(); return dow===0||dow===6; }
+function buildCalendar(startIso,weeks){ const start=parseISO(startIso); const arr=[]; for(let i=0;i<weeks*7;i++) arr.push(isoDate(addDays(start,i))); return arr; }
+function countWorkdays(calendar){
+  return calendar.reduce((acc,dt)=>{
+    if(isWeekendISO(dt))return acc;
+    if(holidays[dt])return acc;
+    return acc+1;
+  },0);
+}
+
+/* ===== leader & engineers ===== */
+function setLeader(){
+  const v=$('leaderInput').value.trim(); if(!v)return;
+  leader=v;
+  localStorage.setItem('leader',leader);
+  $('leaderDisplay').textContent=leader;
+}
+function renderEngineerChips(){
+  const wrap=$('engineerChipList'); wrap.innerHTML='';
+  engineers.forEach(name=>{
+    const pill=document.createElement('span'); pill.className='pill'; pill.textContent=name;
+    const b=document.createElement('button'); b.textContent='✕'; b.onclick=()=>deleteEngineer(name);
+    pill.appendChild(b); wrap.appendChild(pill);
+  });
+}
+function applyEngineers(){
+  const val=$('engineerManager').value.trim(); if(!val)return;
+  engineers=val.split(',').map(s=>s.trim()).filter(Boolean);
+  safeSave('engineers',engineers);
+  renderEngineerChips(); fillDetailDropdowns(); updateProgressGrid(); updateTotalProgress();
+}
+function addSingleEngineer(){
+  const v=prompt('Engineer name:'); if(!v)return; const name=v.trim(); if(!name)return;
+  if(!engineers.includes(name)) engineers.push(name);
+  safeSave('engineers',engineers);
+  $('engineerManager').value=engineers.join(',');
+  renderEngineerChips(); fillDetailDropdowns(); updateProgressGrid(); updateTotalProgress();
+}
+function deleteEngineer(name){
+  if(!confirm('Delete owner '+name+' ?'))return;
+  engineers=engineers.filter(e=>e!==name);
+  safeSave('engineers',engineers);
+  $('engineerManager').value=engineers.join(',');
+  detailRows=detailRows.filter(r=>r.owner!==name);
+  safeSave('detailRows',detailRows);
+  renderEngineerChips(); fillDetailDropdowns(); renderLegacyTable(); updateProgressGrid(); updateTotalProgress();
+}
+
+/* ===== holidays ===== */
+function renderHolidayList(){
+  const wrap=$('holidayList'); const keys=Object.keys(holidays).sort();
+  if(!keys.length){ wrap.textContent='（尚無假日）'; return; }
+  wrap.innerHTML='';
+  keys.forEach(d=>{
+    const div=document.createElement('div');
+    div.style.display='flex';
+    div.style.justifyContent='space-between';
+    div.style.marginBottom='4px';
+    div.innerHTML=`<div><strong>${d}</strong> &nbsp; ${holidays[d]}</div>`;
+    const btn=document.createElement('button');
+    btn.textContent='刪除';
+    btn.onclick=()=>{
+      delete holidays[d];
+      safeSave('holidays',holidays);
+      renderHolidayList();
+      updateProgressGrid();
+      updateTotalProgress();
+    };
+    div.appendChild(btn); wrap.appendChild(div);
+  });
+}
+function addHoliday(){
+  const d=$('holidayDate').value; const name=$('holidayName').value.trim();
+  if(!d||!name){alert('請填假日日期與名稱');return;}
+  holidays[d]=name;
+  safeSave('holidays',holidays);
+  $('holidayDate').value=''; $('holidayName').value='';
+  renderHolidayList(); updateProgressGrid(); updateTotalProgress();
+}
+function clearHolidays(){
+  if(!confirm('Clear all holidays?'))return;
+  holidays={};
+  safeSave('holidays',holidays);
+  renderHolidayList(); updateProgressGrid(); updateTotalProgress();
+}
+
+/* ===== aggregate from detailRows ===== */
+function aggregateForRange(dates){
+  const map={};
+  engineers.forEach(e=>{
+    map[e]={totals:{pass:0,fail:0,block:0},byDate:{}};
+    dates.forEach(d=>map[e].byDate[d]={pass:0,fail:0,block:0});
+  });
+  detailRows.forEach(r=>{
+    if(!dates.includes(r.date))return;
+    if(!map[r.owner]){
+      map[r.owner]={totals:{pass:0,fail:0,block:0},byDate:{}};
+      dates.forEach(d=>map[r.owner].byDate[d]={pass:0,fail:0,block:0});
+    }
+    const cell=map[r.owner].byDate[r.date];
+    cell.pass += r.pass || 0;
+    cell.fail += r.fail || 0;
+    cell.block+= r.block|| 0;
+  });
+  Object.keys(map).forEach(o=>{
+    let p=0,f=0,b=0;
+    dates.forEach(d=>{
+      const c=map[o].byDate[d];
+      p+=c.pass; f+=c.fail; b+=c.block;
+    });
+    map[o].totals={pass:p,fail:f,block:b};
+  });
+  return map;
+}
+
+/* ===== grid render with personal progress capping ===== */
+function updateProgressGrid(){
+  const startIso=$('startDate').value; if(!startIso){return;}
+  const weeks=parseInt($('projectWeeks').value,10)||6;
+  const defaultTarget=Math.max(1,parseInt($('defaultDailyTarget').value,10)||1);
+
+  const calendar=buildCalendar(startIso,weeks);
+  const workdays=countWorkdays(calendar);
+  $('workdaysCount').value=workdays;
+
+  const agg=aggregateForRange(calendar);
+  const tbl=$('progressTable'); tbl.innerHTML='';
+
+  const thead=document.createElement('thead');
+  const headRow=document.createElement('tr');
+  headRow.innerHTML=`<th class="owner-col">Owner</th><th>Status</th><th>Total</th><th>Progress</th>`;
+  calendar.forEach(d=>{
+    const th=document.createElement('th');
+    const wk=new Date(d+'T00:00:00').toLocaleDateString(undefined,{weekday:'short'});
+    th.innerHTML=`<div style="font-weight:700">${wk}</div><div style="font-size:11px">${d}${holidays[d]?`<div class="holiday-label">${holidays[d]}</div>`:''}</div>`;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow); tbl.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+
+  const ownerNames = Object.keys(agg);
+
+  ownerNames.forEach(owner=>{
+    const data=agg[owner];
+    const denom=defaultTarget*(workdays||1);
+
+    const rows=[
+      {key:'pass',label:'PASS',color:getComputedStyle(document.documentElement).getPropertyValue('--pass').trim()||'#2e7d32',total:data.totals.pass},
+      {key:'fail',label:'FAIL',color:getComputedStyle(document.documentElement).getPropertyValue('--fail').trim()||'#d32f2f',total:data.totals.fail},
+      {key:'block',label:'BLOCK',color:getComputedStyle(document.documentElement).getPropertyValue('--block').trim()||'#f57c00',total:data.totals.block}
+    ];
+
+    const perOwnerTotal = rows.reduce((s,r)=>s+r.total,0);
+    const perOwnerCap   = denom;
+
+    rows.forEach((r,idx)=>{
+      const tr=document.createElement('tr');
+      if(idx===0){
+        const ownerTd=document.createElement('td'); ownerTd.className='owner-col'; ownerTd.rowSpan=3;
+        ownerTd.innerHTML=`<div class="owner-header">
+          <div>
+            <div style="font-weight:700">${owner}</div>
+            <div class="small">target:${defaultTarget} / total:${defaultTarget*workdays}</div>
+            <div class="small">personal cap:${perOwnerCap}</div>
+          </div>
+          <button class="owner-delete" data-owner="${owner}">✕</button>
+        </div>`;
+        tr.appendChild(ownerTd);
+      }
+      const stTd=document.createElement('td'); stTd.textContent=r.label; tr.appendChild(stTd);
+      const totTd=document.createElement('td'); totTd.textContent=r.total; tr.appendChild(totTd);
+
+      const rawPct = (r.total/(denom||1))*100;
+      const cappedPct = Math.min(100,Math.round(rawPct));
+      const progTd=document.createElement('td');
+      progTd.innerHTML=`<div style="display:flex;align-items:center;gap:6px">
+        <span style="width:40px;text-align:right">${cappedPct}%</span>
+        <div style="flex:1;background:#e2e8f0;border-radius:8px;overflow:hidden">
+          <div style="width:${cappedPct}%;height:10px;background:${r.color};"></div>
+        </div>
+      </div>`;
+      tr.appendChild(progTd);
+
+      calendar.forEach(d=>{
+        const cell=document.createElement('td'); cell.className='day-cell';
+        if(holidays[d]) cell.classList.add('cell-holiday'); else if(isWeekendISO(d)) cell.classList.add('cell-weekend');
+        const val=data.byDate[d]?(data.byDate[d][r.key]||0):0;
+        const dayPct=Math.min(100,Math.round((val/defaultTarget)*100));
+        if(val>0){
+          const fill=document.createElement('div'); fill.className='day-fill'; fill.style.background=r.color; cell.appendChild(fill);
+        }
+        const num=document.createElement('div'); num.className='day-num'; num.textContent=val||''; cell.appendChild(num);
+        const mini=document.createElement('div'); mini.className='progress-bar-mini';
+        const miniFill=document.createElement('div'); miniFill.className='progress-mini-fill'; miniFill.style.width=(val?dayPct:0)+'%'; miniFill.style.background=r.color;
+        mini.appendChild(miniFill); cell.appendChild(mini);
+        tr.appendChild(cell);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    if(perOwnerTotal > perOwnerCap){
+      console.warn('Owner',owner,'total over 100% cap',perOwnerTotal,'>',perOwnerCap);
+    }
+  });
+
+  tbl.appendChild(tbody);
+  $('timestamp').textContent = (I18N[localStorage.getItem('siteLang')||'zh-Hant']?.last_updated_prefix || 'Last updated: ') + new Date().toLocaleString();
+
+  updateTotalProgress(calendar, agg);
+}
+
+/* ===== total progress for all engineers ===== */
+function updateTotalProgress(calendar, agg){
+  const lang = localStorage.getItem('siteLang') || 'zh-Hant';
+  const dI18n = I18N[lang] || I18N['zh-Hant'];
+
+  const defaultTarget = Math.max(1,parseInt($('defaultDailyTarget').value,10)||1);
+  const workdays = countWorkdays(calendar || []);
+  const perEngineerCap = defaultTarget * (workdays||1);
+
+  const ownerNames = Object.keys(agg || {});
+  const nOwner = ownerNames.length || 1;
+
+  let sumPass=0,sumFail=0,sumBlock=0;
+  ownerNames.forEach(o=>{
+    const t = agg[o]?.totals || {pass:0,fail:0,block:0};
+    sumPass += t.pass;
+    sumFail += t.fail;
+    sumBlock+= t.block;
+  });
+
+  const totalCap = perEngineerCap * nOwner;
+  const totalDone = sumPass + sumFail + sumBlock;
+
+  const pct = totalCap ? Math.min(100,Math.round((totalDone/totalCap)*100)) : 0;
+  $('totalPctLabel').textContent = pct + '%';
+
+  const passPctSeg  = totalCap ? Math.min(100, (sumPass / totalCap) * 100) : 0;
+  const failPctSeg  = totalCap ? Math.min(100, (sumFail / totalCap) * 100) : 0;
+  const blockPctSeg = totalCap ? Math.min(100, (sumBlock/ totalCap) * 100) : 0;
+
+  $('totalPassFill').style.width = passPctSeg + '%';
+  $('totalFailFill').style.width = failPctSeg + '%';
+  $('totalBlockFill').style.width= blockPctSeg + '%';
+
+  $('totalBreakdown').textContent =
+    `PASS:${sumPass} / FAIL:${sumFail} / BLOCK:${sumBlock} , cap per owner:${perEngineerCap}, owners:${nOwner}`;
+
+  $('totalCapInfo').textContent =
+    `Total cap = per-owner cap (${perEngineerCap}) × owners (${nOwner}) = ${totalCap}`;
+
+  $('totalPctWarn').textContent = (pct>100) ? dI18n.warn_over_100 : '';
+}
+
+/* ===== legacy summary table (with filters) ===== */
+function renderLegacyTable(){
+  const tbody=document.querySelector('#testTable tbody'); tbody.innerHTML=''; let i=0;
+
+  const ft = $('filterTester').value.trim().toLowerCase();
+  const fd = $('filterDetail').value.trim().toLowerCase();
+  const fs = $('filterSheet').value.trim().toLowerCase();
+  const fl = $('filterLine').value.trim().toLowerCase();
+  const fdate = $('filterDate').value;
+  const fPass = $('filterPass').value ? parseInt($('filterPass').value,10) : null;
+  const fFail = $('filterFail').value ? parseInt($('filterFail').value,10) : null;
+  const fBlock= $('filterBlock').value ? parseInt($('filterBlock').value,10) : null;
+
+  detailRows.forEach(r=>{
+    if(ft && !r.owner.toLowerCase().includes(ft)) return;
+    if(fd && !r.detail.toLowerCase().includes(fd)) return;
+    if(fs && !r.sheet.toLowerCase().includes(fs)) return;
+    if(fl && String(r.line||'').toLowerCase().indexOf(fl)===-1) return;
+    if(fdate && r.date !== fdate) return;
+    if(fPass !== null && (r.pass||0) < fPass) return;
+    if(fFail !== null && (r.fail||0) < fFail) return;
+    if(fBlock!== null && (r.block||0)< fBlock) return;
+
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${++i}</td>
+      <td>${r.owner}</td>
+      <td>${r.detail}</td>
+      <td>${r.sheet}</td>
+      <td>${r.line||''}</td>
+      <td>${r.date}</td>
+      <td>${r.pass||0}</td>
+      <td>${r.fail||0}</td>
+      <td>${r.block||0}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ===== detail input ===== */
+function fillDetailDropdowns(){
+  const selTester=$('detailTester'), selStatus=$('detailStatus'), selSheet=$('detailSheet');
+  selTester.innerHTML=''; engineers.forEach(e=>{ const o=document.createElement('option'); o.value=e; o.textContent=e; selTester.appendChild(o); });
+  selStatus.innerHTML=''; DETAIL_STATUS_OPTIONS.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selStatus.appendChild(o); });
+  selSheet.innerHTML=''; SHEET_OPTIONS.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selSheet.appendChild(o); });
+}
+function addDetail(){
+  const owner=$('detailTester').value;
+  const detail=$('detailStatus').value;
+  const sheet=$('detailSheet').value;
+  const line = parseInt($('detailLine').value,10) || 1;
+  const date=$('detailDate').value;
+  const res=$('detailResult').value;
+  const cnt=Math.max(1,parseInt($('detailCount').value,10)||1);
+  if(!owner||!detail||!sheet||!date){alert('Tester / Detail / Sheet / Date 皆需填寫');return;}
+  const rec={owner,detail,sheet,line,date,pass:0,fail:0,block:0};
+  rec[res]=cnt;
+  detailRows.push(rec);
+  safeSave('detailRows',detailRows);
+  renderLegacyTable();
+  updateProgressGrid();
+}
+
+/* ===== export ===== */
+function exportCSV(){
+  let csv='Tester,Test Item Detail,Sheet,Line,Date,Pass,Fail,Block\n';
+  detailRows.forEach(r=>{
+    csv+=[r.owner,r.detail,r.sheet,r.line||'',r.date,r.pass||0,r.fail||0,r.block||0].join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='DetailStatus.csv'; a.click();
+}
+function exportExcel(){
+  const ws=[["Tester","Test Item Detail","Sheet","Line","Date","Pass","Fail","Block"]];
+  detailRows.forEach(r=>ws.push([r.owner,r.detail,r.sheet,r.line||'',r.date,r.pass||0,r.fail||0,r.block||0]));
+  const sheet=XLSX.utils.aoa_to_sheet(ws); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,sheet,"DetailStatus"); XLSX.writeFile(wb,"DetailStatus.xlsx");
+}
+
+/* ===== reset all ===== */
+function resetAll(){
+  const lang = localStorage.getItem('siteLang') || 'zh-Hant';
+  const dI18n = I18N[lang] || I18N['zh-Hant'];
+  if(!confirm(dI18n.reset_confirm)) return;
+
+  engineers = DEFAULT_ENGINEERS.slice();
+  holidays = {};
+  leader = "Sora/Albert";
+  detailRows = [];
+
+  localStorage.removeItem('engineers');
+  localStorage.removeItem('holidays');
+  localStorage.removeItem('leader');
+  localStorage.removeItem('detailRows');
+
+  $('leaderInput').value=leader;
+  $('leaderDisplay').textContent=leader;
+  $('engineerManager').value=engineers.join(',');
+  renderEngineerChips();
+  renderHolidayList();
+  fillDetailDropdowns();
+  renderLegacyTable();
+  updateProgressGrid();
+}
+
+/* ===== events ===== */
+document.addEventListener('click',(e)=>{
+  if(e.target.id==='setLeaderBtn') setLeader();
+  if(e.target.id==='applyEngineersBtn') applyEngineers();
+  if(e.target.id==='addEngineerBtn') addSingleEngineer();
+  if(e.target.id==='refreshGridBtn') updateProgressGrid();
+  if(e.target.id==='addHolidayBtn') addHoliday();
+  if(e.target.id==='clearHolidaysBtn') clearHolidays();
+  if(e.target.id==='exportCsvBtn') exportCSV();
+  if(e.target.id==='exportXlsxBtn') exportExcel();
+  if(e.target.id==='addDetailBtn') addDetail();
+  if(e.target.id==='resetAllBtn') resetAll();
+  if(e.target.id==='applyFilterBtn') renderLegacyTable();
+  if(e.target.id==='clearFilterBtn'){
+    $('filterTester').value='';
+    $('filterDetail').value='';
+    $('filterSheet').value='';
+    $('filterLine').value='';
+    $('filterDate').value='';
+    $('filterPass').value='';
+    $('filterFail').value='';
+    $('filterBlock').value='';
+    renderLegacyTable();
+  }
+
+  // 新增：JSON Export / Import
+  if(e.target.id === 'exportStateBtn') exportStateJSON();
+  if(e.target.id === 'importStateBtn') $('importStateFile').click();
+
+  const delOwner = e.target.closest('.owner-delete');
+  if(delOwner){ const name=delOwner.getAttribute('data-owner'); deleteEngineer(name); }
+});
+
+$('langSelect').addEventListener('change',()=>{
+  applyLang($('langSelect').value);
+});
+$('themeSelect').addEventListener('change',()=>{
+  applyTheme($('themeSelect').value);
+});
+
+$('startDate').addEventListener('change',()=>{
+  localStorage.setItem('progressStart',$('startDate').value);
+  updateProgressGrid();
+});
+$('projectWeeks').addEventListener('change',()=>{
+  localStorage.setItem('projectWeeks',$('projectWeeks').value);
+  updateProgressGrid();
+});
+$('defaultDailyTarget').addEventListener('change',()=>{
+  localStorage.setItem('defaultDailyTarget',$('defaultDailyTarget').value);
+  updateProgressGrid();
+});
+
+// 新增：檔案匯入 change 事件
+$('importStateFile').addEventListener('change',(e)=>{
+  const file = e.target.files[0];
+  if(file) importStateJSON(file);
+  e.target.value = ''; // 讓下一次可以選同一個檔
+});
+
+/* ===== init ===== */
+window.addEventListener('load',()=>{
+  const savedLang = localStorage.getItem('siteLang') || 'zh-Hant';
+  $('langSelect').value = savedLang;
+  applyLang(savedLang);
+
+  const savedTheme = localStorage.getItem('siteTheme') || 'light';
+  $('themeSelect').value = savedTheme;
+  applyTheme(savedTheme);
+
+  $('leaderInput').value=leader;
+  $('leaderDisplay').textContent=leader;
+  $('engineerManager').value=engineers.join(',');
+
+  const savedStart=localStorage.getItem('progressStart')||null;
+  $('startDate').value=savedStart||new Date().toISOString().slice(0,10);
+  $('projectWeeks').value=localStorage.getItem('projectWeeks')||6;
+  $('defaultDailyTarget').value=localStorage.getItem('defaultDailyTarget')||1;
+
+  renderEngineerChips();
+  renderHolidayList();
+  fillDetailDropdowns();
+  renderLegacyTable();
+  updateProgressGrid();
+});
+</script>
+</body>
+</html>
