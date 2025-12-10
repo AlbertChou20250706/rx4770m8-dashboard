@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "meta": {
+    "generatedAt": "2025-12-10T05:11:27.699Z"
+  },
+  "leader": "Sora/Albert",
+  "engineers": [
+    "Ava",
+    "Lully",
+    "Alan",
+    "Jack",
+    "Wade",
+    "Leo"
+  ],
+  "holidays": {
+    "2025-12-25": "行憲紀念日",
+    "2026-01-01": "元旦"
+  },
+  "detailRows": [
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 5,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 5,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 5,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 5,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 5,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 10,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Ava",
+      "detail": "TSR_HW_Configurator_Linux_Oracle",
+      "sheet": "TR SAS RAID Adapter",
+      "line": 1,
+      "date": "2025-12-08",
+      "pass": 10,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Lully",
+      "detail": "TSR_OS_Configurator_Linux_SuSE",
+      "sheet": "TR FC Adapter",
+      "line": 12,
+      "date": "2025-12-09",
+      "pass": 10,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Alan",
+      "detail": "TSR_HW_Configurator_Linux_SuSE",
+      "sheet": "TR FC Adapter",
+      "line": 50,
+      "date": "2025-12-09",
+      "pass": 11,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Jack",
+      "detail": "TSR_SW_Configurator_Linux_SuSE",
+      "sheet": "TR other Adapter",
+      "line": 16,
+      "date": "2025-12-09",
+      "pass": 14,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Wade",
+      "detail": "TSR_OS_Configurator_Linux_SuSE",
+      "sheet": "TR Systemboard",
+      "line": 13,
+      "date": "2025-12-09",
+      "pass": 1,
+      "fail": 0,
+      "block": 0
+    },
+    {
+      "owner": "Leo",
+      "detail": "TSR_SW_Configurator_Linux_SuSE",
+      "sheet": "TR ASP",
+      "line": 33,
+      "date": "2025-12-09",
+      "pass": 0,
+      "fail": 10,
+      "block": 0
+    }
+  ],
+  "ui": {
+    "siteLang": "en",
+    "siteTheme": "light",
+    "progressStart": "2025-12-08",
+    "projectWeeks": "6",
+    "defaultDailyTarget": "6",
+    "reportYear": "2025"
+  }
+}
